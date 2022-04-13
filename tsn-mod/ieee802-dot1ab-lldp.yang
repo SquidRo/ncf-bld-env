@@ -1,0 +1,874 @@
+module ieee802-dot1ab-lldp {
+  yang-version "1.1";
+  
+  /*** NAMESPACE / PREFIX DEFINITION ***/
+  namespace urn:ieee:std:802.1AB:yang:ieee802-dot1ab-lldp;
+  prefix lldp;
+  
+  /*** LINKAGE (IMPORTS / INCLUDES) ***/
+  import ieee802-dot1ab-types {
+    prefix lldp-types;
+  }
+  import ietf-routing {
+    prefix rt;
+  }
+  import ietf-yang-types {
+    prefix yang;
+  }
+  import ietf-interfaces {
+    prefix if;
+  }
+  import ieee802-dot1q-bridge {
+    prefix dot1q;
+  }
+  import ieee802-types {
+    prefix ieee;
+  }
+  import iana-if-type {
+    prefix ianaift;
+  }
+  
+  /*** META INFORMATION ***/
+  organization
+    "Institute of Electrical and Electronics Engineers";
+  contact
+    "WG-URL: http://ieee802.org/1/
+     WG-EMail: stds-802-1-l@ieee.org
+       Contact: IEEE 802.1 Working Group Chair
+       Postal: C/O IEEE 802.1 Working Group
+       IEEE Standards Association
+            445 Hoes Lane
+            Piscataway, NJ 08854
+            USA
+    
+     E-mail: stds-802-1-chairs@ieee.org";
+  description
+    "Management Information Base module for LLDP configuration, statistics,
+    local system data and remote systems data components. This experimental
+    YANG module is an individual contribution, and does not represent a
+    formally sanctioned YANG module of IEEE. Therefore, this YANG module will
+    change in incompatible ways from its current revision to the formally
+    published YANG module for IEEE Std 802.1AB-2016.";
+  revision 2020-10-23 {
+    description
+      "Comment resolution ABcu-d1-0";
+    reference
+      "IEEE Std 802.1AB-2016";
+  }
+  
+  /*** TYPE DEFINITIONS ***/
+  typedef bridge-ref {
+    type leafref {
+      path '/dot1q:bridges/dot1q:bridge/dot1q:name';
+    }
+    description
+      "This type is used by data models that need to reference a configured
+      Bridge.";
+  }
+  typedef man-addr-if-subtype {
+    type enumeration {
+      enum unknown {
+        value 1;
+        description
+          "Interface is not known";
+      }
+      enum port-ref {
+        value 2;
+        description
+          "Interface based on the port-ref MIB object";
+      }
+      enum system-port-number {
+        value 3;
+        description
+          "Interface based on the system port number";
+      }
+    }
+    description
+      "Management address interface subtype";
+    reference
+      "IEEE Std 802.1AB-2016: 8.5.9.5";
+  }
+  typedef man-addr-type {
+    type binary {
+      length "1..31";
+    }
+    description
+      "Management address associated with the LLDP agent";
+    reference
+      "IEEE Std 802.1AB-2016: 8.5.9.4";
+  }
+  typedef system-capabilities-map {
+    type bits {
+      bit other {
+        position "0";
+        description
+          "System has capabilities other than those listed below";
+      }
+      bit repeater {
+        position "1";
+        description
+          "System has repeater capability";
+      }
+      bit bridge {
+        position "2";
+        description
+          "System has bridge capability";
+      }
+      bit wlan-access-point {
+        position "3";
+        description
+          "System has WLAN access point capability";
+      }
+      bit router {
+        position "4";
+        description
+          "System has router capability";
+      }
+      bit telephone {
+        position "5";
+        description
+          "System has telephone capability";
+      }
+      bit docsis-cable-device {
+        position "6";
+        description
+          "System has DOCSIS Cable Device capability";
+        reference
+          "IETF RFC 4639";
+      }
+      bit station-only {
+        position "7";
+        description
+          "System has only station capability";
+      }
+      bit cvlan-component {
+        position "8";
+        description
+          "System has C-VLAN component functionality";
+      }
+      bit svlan-component {
+        position "9";
+        description
+          "System has S-VLAN component functionality";
+      }
+      bit two-port-mac-relay {
+        position "10";
+        description
+          "System has Two-port MAC Relay (TPMR) functionality.";
+      }
+    }
+    description
+      "This describes system capabilities.";
+    reference
+      "IEEE Std 802.1AB-2016: 8.5.8.1";
+  }
+  typedef port-list {
+    type binary {
+      length "0..512";
+    }
+    description
+      "Each octet within this value specifies a set of eight ports, with the
+      first octet specifying ports 1 through 8, the second octet specifying
+      ports 9 through 16, etc. Within each octet, the most significant bit
+      represents the lowest numbered port, and the least significant bit
+      represents the highest numbered port. Thus, each port of the system is
+      represented by a single bit within the value of this object. If that
+      bit has a value of '1' then that port is included in the set of ports;
+      the port is not included if its bit has a value of '0'.";
+    reference
+      "IETF RFC 2674 section 5";
+  }
+  typedef dest-address-index-type {
+    type uint32 {
+      range "1..4096";
+    }
+    description
+      "An index value used as the key to the list of destination MAC
+      addresses used both as the destination addresses on transmitted LLDPDUs
+      and on received LLDPDUs. This index value is also used as a secondary
+      key in lists that use interface as a primary key.";
+  }
+  
+  /*** GROUPING DEFINITIONS ***/
+  grouping lldp-cfg {
+    description
+      "LLDP basic configuration group.";
+    leaf message-fast-tx {
+      type uint32 {
+        range "1..3600";
+      }
+      default "1";
+      description
+        "Time interval in timer ticks between transmissions during fast
+        transmission periods(i.e., txFast is non-zero)";
+      reference
+        "IEEE Std 802.1AB-2016: 9.2.5.5";
+    }
+    leaf message-tx-hold-multiplier {
+      type uint32 {
+        range "2..10";
+      }
+      default "4";
+      description
+        "Multiplier of msg-tx-interval";
+      reference
+        "IEEE Std 802.1AB-2016: 9.2.5.6";
+    }
+    leaf message-tx-interval {
+      type uint32 {
+        range "1..3600";
+      }
+      units "second";
+      default "30";
+      description
+        "Time interval in timer ticks between transmissions during normal
+        transmission periods (i.e., txFast is zero).";
+      reference
+        "IEEE Std 802.1AB-2016: 9.2.5.7";
+    }
+    leaf reinit-delay {
+      type uint32 {
+        range "1..10";
+      }
+      units "second";
+      default "2";
+      description
+        "Amount of delay (in units of seconds) from when admin-status becomes
+        'disabled' until re-initialization is attempted.";
+      reference
+        "IEEE Std 802.1AB-2016: 9.2.5.10";
+    }
+    leaf tx-credit-max {
+      type uint32 {
+        range "1..10";
+      }
+      default "5";
+      description
+        "The maximum number of consecutive LLDPDUs that can be transmitted at
+        any time.";
+      reference
+        "IEEE Std 802.1AB-2016: 9.2.5.17";
+    }
+    leaf tx-fast-init {
+      type uint32 {
+        range "1..8";
+      }
+      default "4";
+      description
+        "Initial value for the fast transmitting LLDPPDU.";
+      reference
+        "IEEE Std 802.1AB-2016: 9.2.5.19";
+    }
+    leaf notification-interval {
+      type uint32 {
+        range "1..3600";
+      }
+      units "second";
+      default "30";
+      description
+        "Controls the transmission of LLDP notifications.";
+      reference
+        "IEEE Std 802.1AB-2016: 9.2.5.7";
+    }
+  }
+  
+  /*** SCHEMA DEFINITIONS ***/
+  container lldp {
+    description
+      "Link Layer Discovery Protocol configuration and operational
+      information.";
+    leaf bridge {
+      type bridge-ref;
+      description
+        "The reference to the IEEE 802.1Q Bridge associated with the LLDP
+        objects.";
+    }
+    uses lldp-cfg;
+    container remote-statistics {
+      config false;
+      description
+        "LLDP remote operational statistics data.";
+      leaf last-change-time {
+        type yang:timestamp;
+        description
+          "The value of sysUpTime object";
+        reference
+          "IETF RFC 3418";
+      }
+      leaf remote-inserts {
+        type yang:zero-based-counter32;
+        units "table entries";
+        description
+          "The number of times the complete set of information advertised by
+          a particular MSAP has been inserted into tables contained in
+          remote-systems-data and lldpExtensions objects.";
+      }
+      leaf remote-deletes {
+        type yang:zero-based-counter32;
+        units "table entries";
+        description
+          "The number of times the complete set of information advertised by
+          a particular MSAP has been deleted from tables contained in
+          remote-systems-data and lldpExtensions objects.";
+      }
+      leaf remote-drops {
+        type yang:zero-based-counter32;
+        units "table entries";
+        description
+          "The number of times the complete set of information advertised by
+          a particular MSAP could not be entered into tables contained in
+          remote-systems-data and lldpExtensions objects because of
+          insufficient resources.";
+      }
+      leaf remote-ageouts {
+        type yang:zero-based-counter32;
+        description
+          "The number of times the complete set of information advertised by
+          a particular MSAP has been deleted from tables contained in
+          remote-systems-data and lldpExtensions objects because the
+          information timeliness interval has expired.";
+      }
+    }
+    container local-system-data {
+      config false;
+      description
+        "LLDP local system operational data.";
+      leaf chassis-id-subtype {
+        type lldp-types:chassis-id-subtype-type;
+        description
+          "The type of encoding used to identify the chassis associated with
+          the local system.";
+        reference
+          "IEEE Std 802.1AB-2016: 8.5.2.2";
+      }
+      leaf chassis-id {
+        type lldp-types:chassis-id-type;
+        description
+          "Chassis component associated with the local system.";
+        reference
+          "IEEE Std 802.1AB-2016: 8.5.2.3";
+      }
+      leaf system-name {
+        type string {
+          length "0..255";
+        }
+        description
+          "System name of the local system.";
+        reference
+          "IEEE Std 802.1AB-2016: 8.5.6.2";
+      }
+      leaf system-description {
+        type string {
+          length "0..255";
+        }
+        description
+          "System description of the local system.";
+        reference
+          "IEEE Std 802.1AB-2016: 8.5.7.2";
+      }
+      leaf system-capabilities-supported {
+        type lldp:system-capabilities-map;
+        description
+          "System capabilities are supported on the local system.";
+        reference
+          "IEEE Std 802.1AB-2016: 8.5.8.1";
+      }
+      leaf system-capabilities-enabled {
+        type lldp:system-capabilities-map;
+        description
+          "System capabilities that are enabled on the local system.";
+        reference
+          "IEEE Std 802.1AB-2016: 8.5.8.2";
+      }
+    }
+    
+    /* LLDP port configuration table */
+    list port {
+      key "name dest-mac-address";
+      description
+        "LLDP configuration information for a particular port.";
+      leaf name {
+        type if:interface-ref;
+        must
+          "derived-from-or-self(deref(.)/../if:type,"+
+          " 'ianaift:ethernetCsmacd')"+
+          "or derived-from-or-self(deref(.)/../if:type,"+
+          " 'ianaift:ieee8023adLag')" {
+          error-message
+            "The LLDP is only configured on Link AggregationandEthernet"+
+            "Port.";
+        }
+        description
+          "The port name used to identify the port component (contained in
+          the local chassis with the LLDP agent) associated with this entry.";
+      }
+      leaf dest-mac-address {
+        type ieee:mac-address;
+        description
+          "Destination MAC address";
+      }
+      leaf admin-status {
+        type enumeration {
+          enum tx-only {
+            value 1;
+            description
+              "Transmit LLDP frames only";
+          }
+          enum rx-only {
+            value 2;
+            description
+              "Receive LLDP frames only";
+          }
+          enum tx-and-rx {
+            value 3;
+            description
+              "Transmit and Receive LLDP frames";
+          }
+          enum disabled {
+            value 4;
+            description
+              "Do Not Transmit or Receive LLDP frames";
+          }
+        }
+        default "tx-and-rx";
+        description
+          "Administratively status of the local LLDP agent.";
+        reference
+          "IEEE Std 802.1AB-2016: 9.2.5.1";
+      }
+      leaf notification-enable {
+        type boolean;
+        default "false";
+        description
+          "Notification status";
+      }
+      leaf tlvs-tx-enable {
+        type bits {
+          bit port-desc {
+            position "0";
+            description
+              "Transmit 'Port Description TLV'";
+          }
+          bit sys-name {
+            position "1";
+            description
+              "Transmit 'System Name TLV'";
+          }
+          bit sys-desc {
+            position "2";
+            description
+              "Transmit 'System Description TLV'";
+          }
+          bit sys-cap {
+            position "3";
+            description
+              "Transmit 'System Capabilities TLV'";
+          }
+        }
+        description
+          "LLDP TLVs whose transmission is allowed on the local LLDP agent by
+          the network management.";
+        reference
+          "IEEE Std 802.1AB-2016 9.1.2.1";
+      }
+      uses lldp-cfg;
+      list management-address-tx-port {
+        key "address-subtype man-address";
+        description
+          "Set of ports (represented as a PortList) on which the local system
+          management address instance will be transmitted.";
+        leaf address-subtype {
+          type identityref {
+            base rt:address-family;
+          }
+          description
+            "Type of address";
+          reference
+            "IEEE Std 802.1AB-2016 8.5.9.3";
+        }
+        leaf man-address {
+          type man-addr-type;
+          description
+            "Management address associated with this TLV.";
+          reference
+            "IEEE Std 802.1AB-2016 8.5.9.4";
+        }
+        leaf tx-enable {
+          type boolean;
+          default "false";
+          description
+            "Transmission enabled status";
+          reference
+            "IEEE Std 802.1AB-2016 9.1.2.1";
+        }
+        leaf addr-len {
+          type uint32;
+          config false;
+          description
+            "Length of the management address subtype and the management
+            address fields in LLDPDUs transmitted by the local LLDP agent.";
+          reference
+            "IEEE Std 802.1AB-2016: 8.5.9.2";
+        }
+        leaf if-subtype {
+          type lldp:man-addr-if-subtype;
+          config false;
+          description
+            "Interface numbering method used for defining the interface
+            number, associated with the local system.";
+          reference
+            "IEEE Std 802.1AB-2016: 8.5.9.5";
+        }
+        leaf if-id {
+          type uint32;
+          config false;
+          description
+            "Interface number for the management address component associated
+            with the local system.";
+          reference
+            "IEEE Std 802.1AB-2016: 8.5.9.6";
+        }
+      }
+      leaf port-id-subtype {
+        type lldp-types:port-id-subtype-type;
+        config false;
+        description
+          "Port identifier encoding used in the associated 'port-id' object.";
+        reference
+          "IEEE Std 802.1AB-2016: 8.5.3.2";
+      }
+      leaf port-id {
+        type lldp-types:port-id-type;
+        config false;
+        description
+          "Port component associated with a given port in the local system.";
+        reference
+          "IEEE Std 802.1AB-2016: 8.5.3.3";
+      }
+      leaf port-desc {
+        type string {
+          length "0..255";
+        }
+        config false;
+        description
+          "802 LAN station's port description associated with the local
+          system.";
+        reference
+          "IEEE Std 802.1AB-2016: 8.5.5.2";
+      }
+      container tx-statistics {
+        config false;
+        description
+          "LLDP frame transmission statistics for a particular port.";
+        leaf total-frames {
+          type yang:counter32;
+          description
+            "A count of all LLDP frames transmitted through the port.";
+          reference
+            "IEEE Std 802.1AB-2016: 9.2.6.5";
+        }
+        leaf total-length-errors {
+          type yang:counter32;
+          description
+            "A count of all LLDP length errors detected when constructing
+            LLPDU frames for transmission through the port.";
+          reference
+            "IEEE Std 802.1AB-2016: 9.2.7.2";
+        }
+      }
+      container rx-statistics {
+        config false;
+        description
+          "LLDP frame reception statistics for a particular port.";
+        leaf total-ageouts {
+          type yang:zero-based-counter32;
+          description
+            "A count of the times that a neighbor’s information is deleted
+            because of rxInfoTTL timer expiration.";
+          reference
+            "IEEE Std 802.1AB-2016: 9.2.6.1";
+        }
+        leaf total-discarded-frames {
+          type yang:counter32;
+          description
+            "A count of all LLDPDUs received and then discarded.";
+          reference
+            "IEEE Std 802.1AB-2016: 9.2.6.2";
+        }
+        leaf error-frames {
+          type yang:counter32;
+          description
+            "A count of all LLDPDUs received at the port with one or more
+            detectable errors.";
+          reference
+            "IEEE Std 802.1AB-2016: 9.2.6.3";
+        }
+        leaf total-frames {
+          type yang:counter32;
+          description
+            "A count of all LLDP frames received at the port.";
+          reference
+            "IEEE Std 802.1AB-2016: 9.2.6.4";
+        }
+        leaf total-discarded-tlvs {
+          type yang:counter32;
+          description
+            "A count of all TLVs received at the port and discarded for any
+            reason.";
+          reference
+            "IEEE Std 802.1AB-2016: 9.2.6.5";
+        }
+        leaf total-unrecognized-tlvs {
+          type yang:counter32;
+          description
+            "A count of all TLVs not recognized by the receiving LLDP local
+            agent.";
+          reference
+            "IEEE Std 802.1AB-2016: 9.2.6.6";
+        }
+      }
+      list remote-systems-data {
+        key "time-mark remote-index";
+        config false;
+        description
+          "Information about a particular physical network connection.";
+        leaf time-mark {
+          type yang:timeticks;
+          description
+            "A TimeFilter for this entry.";
+          reference
+            "IETF RFC 2021 section 6";
+        }
+        leaf remote-index {
+          type uint32 {
+            range "1..2147483647";
+          }
+          description
+            "Remote system identity";
+        }
+        leaf chassis-id-subtype {
+          type lldp-types:chassis-id-subtype-type;
+          description
+            "Identify the chassis associated with the remote system.";
+          reference
+            "IEEE Std 802.1AB-2016: 8.5.2.2";
+        }
+        leaf chassis-id {
+          type lldp-types:chassis-id-type;
+          description
+            "Identify the chassis component associated with the remote
+            system.";
+          reference
+            "IEEE Std 802.1AB-2016: 8.5.2.3";
+        }
+        leaf port-id-subtype {
+          type lldp-types:port-id-subtype-type;
+          description
+            "The type of port identifier encoding used in the associated
+            'port-id' object.";
+          reference
+            "IEEE Std 802.1AB-2016: 8.5.3.2";
+        }
+        leaf port-id {
+          type lldp-types:port-id-type;
+          description
+            "Port component associated with the remote system.";
+          reference
+            "IEEE Std 802.1AB-2016: 8.5.3.3";
+        }
+        leaf port-desc {
+          type string {
+            length "0..255";
+          }
+          description
+            "Description of the given port associated with the remote system.";
+          reference
+            "IEEE Std 802.1AB-2016: 8.5.5.2";
+        }
+        leaf system-name {
+          type string {
+            length "0..255";
+          }
+          description
+            "System name of the remote system.";
+          reference
+            "IEEE Std 802.1AB-2016: 8.5.6.2";
+        }
+        leaf system-description {
+          type string {
+            length "0..255";
+          }
+          description
+            "System description of the remote system.";
+          reference
+            "IEEE Std 802.1AB-2016: 8.5.7.2";
+        }
+        leaf system-capabilities-supported {
+          type lldp:system-capabilities-map;
+          description
+            "Capabilities that are supported on the remote system.";
+          reference
+            "IEEE Std 802.1AB-2016: 8.5.8.1";
+        }
+        leaf system-capabilities-enabled {
+          type lldp:system-capabilities-map;
+          description
+            "System capabilities that are enabled on the remote system.";
+          reference
+            "IEEE Std 802.1AB-2016: 8.5.8.2";
+        }
+        list management-address {
+          key "address-subtype address";
+          description
+            "Management address information about a particular chassis
+            component.";
+          leaf address-subtype {
+            type identityref {
+              base rt:address-family;
+            }
+            description
+              "Management address identifier encoding";
+            reference
+              "IEEE Std 802.1AB-2016: 8.5.9.3";
+          }
+          leaf address {
+            type lldp:man-addr-type;
+            description
+              "Management address component associated with the remote
+              system.";
+            reference
+              "IEEE Std 802.1AB-2016: 8.5.9.4";
+          }
+          leaf if-subtype {
+            type lldp:man-addr-if-subtype;
+            description
+              "Interface numbering method used for defining the interface
+              number, associated with the remote system.";
+            reference
+              "IEEE Std 802.1AB-2016: 8.5.9.5";
+          }
+          leaf if-id {
+            type uint32;
+            description
+              "Interface number regarding the management address component
+              associated with the remote system.";
+            reference
+              "IEEE Std 802.1AB-2016: 8.5.9.6";
+          }
+        }
+        list remote-unknown-tlv {
+          key "tlv-type";
+          description
+            "Information about an unrecognized TLV received from a physical
+            network connection. Entries may be created and deleted in this
+            table by the agent, if a physical topology discovery process is
+            active.";
+          leaf tlv-type {
+            type uint32 {
+              range "9..126";
+            }
+            description
+              "Type of TLV";
+            reference
+              "IEEE Std 802.1AB-2016: 9.2.7.7.1";
+          }
+          leaf tlv-info {
+            type binary {
+              length "0..511";
+            }
+            description
+              "Value extracted from TLV";
+            reference
+              "IEEE Std 802.1AB-2016: 9.2.7.7.1";
+          }
+        }
+        list remote-org-defined-info {
+          key "info-identifier info-subtype info-index";
+          description
+            "Information about the unrecognized organizationally defined
+            information advertised by the remote system.";
+          leaf info-identifier {
+            type binary {
+              length "3";
+            }
+            description
+              "The Organizationally Unique Identifier (OUI)";
+            reference
+              "IEEE Std 802.1AB-2016: 8.6.1.3";
+          }
+          leaf info-subtype {
+            type uint32 {
+              range "1..255";
+            }
+            description
+              "The subtype of the organizationally defined information
+              received from the remote system.";
+            reference
+              "IEEE Std 802.1AB-2016: 8.6.1.4";
+          }
+          leaf info-index {
+            type uint32 {
+              range "1..2147483647";
+            }
+            description
+              "Arbitrary local integer value";
+          }
+          leaf remote-info {
+            type binary {
+              length "0..507";
+            }
+            description
+              "The organizationally defined information of the remote system.";
+            reference
+              "IEEE Std 802.1AB-2016: 8.6.1.5";
+          }
+        }
+      }
+    }
+  }
+  notification remote-table-change {
+    description
+      "A rem-table-change notification is sent when the value of
+      remote-table-last-change-time changes. It can be utilized by an NMS to
+      trigger LLDP remote systems table maintenance polls.";
+    leaf remote-insert {
+      type leafref {
+        path '/lldp:lldp/lldp:remote-statistics/lldp:remote-inserts';
+      }
+      description
+        "The number of times the complete set of information advertised by a
+        particular MSAP has been inserted into tables contained in
+        remote-systems-data and lldpExtensions objects.";
+    }
+    leaf remote-delete {
+      type leafref {
+        path '/lldp:lldp/lldp:remote-statistics/lldp:remote-deletes';
+      }
+      description
+        "The number of times the complete set of information advertised by a
+        particular MSAP has been deleted from tables contained in
+        remote-systems-data and lldpExtensions objects.";
+    }
+    leaf remote-drops {
+      type leafref {
+        path '/lldp:lldp/lldp:remote-statistics/lldp:remote-drops';
+      }
+      description
+        "The number of times the complete set of information advertised by a
+        particular MSAP could not be entered into tables contained in
+        remote-systems-data and lldpExtensions objects because of
+        insufficient resources.";
+    }
+    leaf remote-ageouts {
+      type leafref {
+        path '/lldp:lldp/lldp:remote-statistics/lldp:remote-ageouts';
+      }
+      description
+        "The number of times the complete set of information advertised by a
+        particular MSAP has been deleted from tables contained in
+        remote-systems-data and lldpExtensions objects because the
+        information timeliness interval has expired.";
+    }
+  }
+}
+

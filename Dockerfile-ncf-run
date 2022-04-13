@@ -1,0 +1,37 @@
+FROM ncf-base 
+
+RUN \ 
+      apt-get update && \
+      DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
+      # for tsn-demo
+      libxml2-dev \
+      libnl-genl-3-dev \
+      libnl-route-3-dev \
+      libnl-nf-3-dev \
+      libcjson-dev \
+      lldpd \
+      libdbus-1-dev
+      
+# install pre-built packages
+COPY libssh0.9.6/ /
+
+COPY deb-ub-20 /deb-ub-20
+RUN \
+    cd /deb-ub-20 && \
+    DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
+    	./libyang2_2.0.164-1_amd64.deb \
+        ./libyang2-dev_2.0.164-1_amd64.deb \
+        ./libnetconf2-3_2.1.7-1_amd64.deb \
+        ./libnetconf2-dev_2.1.7-1_amd64.deb \
+        ./libsysrepo7_2.1.42-1_amd64.deb \
+        ./libsysrepo-dev_2.1.42-1_amd64.deb \
+        ./sysrepo-tools_2.1.42-1_amd64.deb \
+        ./netopeer2_2.1.16-1_amd64.deb  && \
+    cd / && \
+    rm -rf /deb-ub-20
+
+ENV EDITOR vim
+EXPOSE 830
+
+COPY deb-ub-20/supervisord.conf /etc/supervisord.conf
+CMD  ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]

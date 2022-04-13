@@ -1,0 +1,3 @@
+[submodule "tsn-demo"]
+	path = tsn-demo
+	url = https://github.com/nocsysmars/tsn
