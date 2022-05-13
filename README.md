@@ -20,10 +20,16 @@ Setup the development env
 git submodule init
 git submodule update
 ```
+
 2.
 ```
-docker run -it --privileged -d -v /var/run/dbus:/var/run/dbus:rw -v "$PWD":/home/myapp:rw -p 830:830 ncf-dev 
+docker run --privileged --network host -d -v /var/run/dbus:/var/run/dbus:rw \
+    -v /var/run/redis:/var/run/redis:rw -v "$PWD":/home/myapp:rw ncf-dev
+
 ```
+
+NOTE: use host network.
+
 3.
 ```
 docker exec -it CONTAINER_ID bash
@@ -34,10 +40,12 @@ docker exec -it CONTAINER_ID bash
 ```
 service lldpd start
 
-cd tsn-mod
-sysrepoctl -i ieee802-dot1ab-lldp.yang -s .
-sysrepoctl -i ietf-hardware\@2018-03-13.yang -s .
-sysrepoctl -i iana-hardware\@2018-03-13.yang -s .
+# already done in Dockerfile-ncf-dev
+#cd tsn-mod
+#sysrepoctl -i iana-if-type\@2017-01-19.yang
+#sysrepoctl -i ieee802-dot1ab-lldp.yang -s .
+#sysrepoctl -i ietf-hardware\@2018-03-13.yang -s .
+#sysrepoctl -i iana-hardware\@2018-03-13.yang -s .
 ```
 
 5.

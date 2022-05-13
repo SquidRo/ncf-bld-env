@@ -10,7 +10,8 @@ RUN \
       libnl-nf-3-dev \
       libcjson-dev \
       lldpd \
-      libdbus-1-dev
+      libdbus-1-dev \
+      libhiredis-dev
       
 # install pre-built packages
 COPY libssh0.9.6/ /
@@ -29,6 +30,17 @@ RUN \
         ./netopeer2_2.1.16-1_amd64.deb  && \
     cd / && \
     rm -rf /deb-ub-20
+
+# install needed yang files
+COPY tsn-mod /tsn-mod
+RUN \
+    cd /tsn-mod && \
+    sysrepoctl -i iana-if-type\@2017-01-19.yang && \
+    sysrepoctl -i ieee802-dot1ab-lldp.yang -s . && \
+    sysrepoctl -i ietf-hardware\@2018-03-13.yang -s . && \
+    sysrepoctl -i iana-hardware\@2018-03-13.yang -s . && \
+    cd / && \
+    rm -rf /tsn-mod
 
 ENV EDITOR vim
 EXPOSE 830
